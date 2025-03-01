@@ -27,6 +27,14 @@ import { createTask, moveTask } from "../_actions/task-actions";
 import { CreateTaskDialog } from "./CreateTaskDialog";
 import { Board, Task } from "./types"; // Importando dos tipos compartilhados
 
+// Mock de usuários até termos autenticação
+const mockUsers = [
+  { id: "user1", name: "Ana Costa" },
+  { id: "user2", name: "Carlos Mendes" },
+  { id: "user3", name: "Ricardo Lopes" },
+  { id: "user4", name: "Luísa Ferreira" },
+];
+
 type BoardContentProps = {
   board: Board;
 };
@@ -336,6 +344,7 @@ export default function BoardContent({ board }: BoardContentProps) {
               column={column}
               onAddTask={() => handleAddTask(column.id)}
               disabled={isLoading}
+              users={mockUsers} // Adicione esta prop
             />
           ))}
 
@@ -356,7 +365,7 @@ export default function BoardContent({ board }: BoardContentProps) {
         <DragOverlay>
           {activeTask ? (
             <div className="opacity-80 pointer-events-none">
-              <TaskCard task={activeTask} />
+              <TaskCard task={activeTask} columns={columns} users={mockUsers} />
             </div>
           ) : null}
         </DragOverlay>

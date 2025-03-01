@@ -16,12 +16,14 @@ type TaskColumnProps = {
   column: Column;
   onAddTask: () => void;
   disabled?: boolean;
+  users: { id: string; name: string }[];
 };
 
 export default function TaskColumn({
   column,
   onAddTask,
   disabled,
+  users,
 }: TaskColumnProps) {
   const { id, name, tasks, wipLimit } = column;
 
@@ -70,7 +72,12 @@ export default function TaskColumn({
 
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
+            <TaskCard
+              key={task.id}
+              task={task}
+              columns={[column]}
+              users={users}
+            />
           ))}
         </SortableContext>
 

@@ -11,6 +11,27 @@ export type Subtask = {
   completed: boolean;
 };
 
+export type Comment = {
+  id: string;
+  content: string;
+  createdAt: Date;
+  author: {
+    id: string;
+    name: string;
+  };
+};
+
+export type Activity = {
+  id: string;
+  action: string;
+  details?: string;
+  createdAt: Date;
+  user: {
+    id: string;
+    name: string;
+  };
+};
+
 export type Task = {
   id: string;
   title: string;
@@ -27,6 +48,10 @@ export type Task = {
   columnId: string;
   sprintId?: string | null;
   subtasks: Subtask[];
+  createdAt: Date; // Adicionado
+  updatedAt: Date; // Adicionado
+  comments?: Comment[]; // Adicionado
+  activities?: Activity[]; // Adicionado
 };
 
 export type Column = {

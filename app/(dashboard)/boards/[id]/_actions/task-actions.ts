@@ -202,3 +202,140 @@ async function moveBetweenColumns(
     });
   });
 }
+
+// Atualizar uma tarefa
+export async function updateTask(
+  taskId: string,
+  data: {
+    title?: string;
+    description?: string;
+    priority?: string;
+    columnId?: string;
+    assigneeId?: string;
+    dueDate?: Date;
+  }
+) {
+  try {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { column: { select: { boardId: true } } },
+    });
+
+    if (!task) {
+      throw new Error("Tarefa não encontrada");
+    }
+
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data,
+    });
+
+    // Registrar atividade
+    await prisma.activity.create({
+      data: {
+        action: "updated",
+        taskId,
+        userId: "userIdAqui", // Substitua pelo ID do usuário atual
+      },
+    });
+
+    revalidatePath(`/boards/${task.column.boardId}`);
+    return updatedTask;
+  } catch (error) {
+    console.error("Erro ao atualizar tarefa:", error);
+    throw new Error("Falha ao atualizar a tarefa");
+  }
+}
+
+// Criar uma subtarefa
+export async function createSubtask(taskId: string, data: { title: string }) {
+  try {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { column: { select: { boardId: true } } },
+    });
+
+    if (!task) {
+      throw new Error("Tarefa não encontrada");
+    }
+
+    const subtask = await prisma.subtask.create({
+      data: {
+        title: data.title,
+        completed: false,
+        taskId,
+      },
+    });
+
+    revalidatePath(`/boards/${task.column.boardId}`);
+    return subtask;
+  } catch (error) {
+    console.error("Erro ao criar subtarefa:", error);
+    throw new Error("Falha ao criar subtarefa");
+  }
+}
+
+// Alternar status de uma subtarefa
+export async function toggleSubtask(subtaskId: string, completed: boolean) {
+  try {
+    const subtask = await prisma.subtask.findUnique({
+      where: { id: subtaskId },
+      select: { task: { select: { column: { select: { boardId: true } } } } },
+    });
+
+    if (!subtask) {
+      throw new Error("Subtarefa não encontrada");
+    }
+
+    const updatedSubtask = await prisma.subtask.update({
+      where: { id: subtaskId },
+      data: { completed },
+    });
+
+    revalidatePath(`/boards/${subtask.task.column.boardId}`);
+    return updatedSubtask;
+  } catch (error) {
+    console.error("Erro ao atualizar subtarefa:", error);
+    throw new Error("Falha ao atualizar subtarefa");
+  }
+}
+
+// Adicionar comentário a uma tarefa
+export async function addCommentToTask(
+  taskId: string,
+  data: { content: string }
+) {
+  try {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { column: { select: { boardId: true } } },
+    });
+
+    if (!task) {
+      throw new Error("Tarefa não encontrada");
+    }
+
+    const comment = await prisma.comment.create({
+      data: {
+        content: data.content,
+        taskId,
+        authorId: "userIdAqui", // Substitua pelo ID do usuário atual
+      },
+    });
+
+    // Registrar atividade de comentário
+    await prisma.activity.create({
+      data: {
+        action: "commented",
+        taskId,
+        userId: "userIdAqui", // Substitua pelo ID do usuário atual
+      },
+    });
+
+    revalidatePath(`/boards/${task.column.boardId}`);
+    return comment;
+  } catch (error) {
+    console.error("Erro ao adicionar comentário:", error);
+    throw new Error("Falha ao adicionar comentário");
+  }
+}
