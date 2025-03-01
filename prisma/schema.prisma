@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String    @id @default(cuid())
+  name        String
+  email       String    @unique
+  password    String
+  image       String?
+  role        String    @default("user") // "user", "admin", "manager"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relações
+  teams       TeamMember[]
+  tasks       Task[]
+  comments    Comment[]
+  activities  Activity[]
+}
+
+model Team {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relações
+  members     TeamMember[]
+  boards      Board[]
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  role      String   // "owner", "admin", "member"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relações
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId    String
+
+  @@unique([userId, teamId])
+}
+
+model Board {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  isTemplate  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relações
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId      String
+  columns     Column[]
+  sprints     Sprint[]
+}
+
+model Column {
+  id          String    @id @default(cuid())
+  name        String
+  order       Int
+  wipLimit    Int?      // Limite WIP do Kanban
+  color       String?   // Cor para identificação visual
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relações
+  board       Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId     String
+  tasks       Task[]
+}
+
+model Sprint {
+  id          String    @id @default(cuid())
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  goal        String?
+  status      String    @default("planning") // "planning", "active", "completed"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relações
+  board       Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId     String
+  tasks       Task[]
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  priority    String    @default("medium") // "low", "medium", "high", "urgent"
+  status      String    @default("to-do") // Customizável com base nas colunas
+  dueDate     DateTime?
+  estimate    Float?    // Estimativa em horas ou pontos
+  order       Int       // Posição na coluna
+  tags        String[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relações
+  assignee    User?     @relation(fields: [assigneeId], references: [id])
+  assigneeId  String?
+  column      Column    @relation(fields: [columnId], references: [id])
+  columnId    String
+  sprint      Sprint?   @relation(fields: [sprintId], references: [id])
+  sprintId    String?
+  comments    Comment[]
+  activities  Activity[]
+  subtasks    Subtask[]
+}
+
+model Subtask {
+  id          String    @id @default(cuid())
+  title       String
+  completed   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relações
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId      String
+}
+
+model Comment {
+  id          String    @id @default(cuid())
+  content     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relações
+  author      User      @relation(fields: [authorId], references: [id])
+  authorId    String
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId      String
+}
+
+model Activity {
+  id          String    @id @default(cuid())
+  action      String    // "created", "updated", "moved", "completed", etc.
+  details     String?   // JSON com detalhes da atividade
+  createdAt   DateTime  @default(now())
+  
+  // Relações
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId      String
+}
