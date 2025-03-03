@@ -5,58 +5,6 @@
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
-export async function getAllBoards() {
-  try {
-    const boards = await prisma.board.findMany({
-      include: {
-        team: {
-          select: {
-            name: true,
-          },
-        },
-        sprints: {
-          where: { status: "active" },
-          select: {
-            name: true,
-          },
-          take: 1,
-        },
-        columns: {
-          include: {
-            _count: {
-              select: { tasks: true },
-            },
-          },
-        },
-      },
-      orderBy: {
-        updatedAt: "desc",
-      },
-    });
-
-    // Transformar os dados para um formato mais amigável para o frontend
-    return boards.map((board) => {
-      const taskCount = board.columns.reduce(
-        (sum, column) => sum + column._count.tasks,
-        0
-      );
-
-      return {
-        id: board.id,
-        name: board.name,
-        description: board.description,
-        teamName: board.team.name,
-        activeSprint: board.sprints[0]?.name || "Sem sprint ativo",
-        taskCount,
-        updatedAt: board.updatedAt,
-      };
-    });
-  } catch (error) {
-    console.error("Erro ao buscar quadros:", error);
-    throw new Error("Falha ao buscar lista de quadros");
-  }
-}
-
 export async function createBoard(data: {
   name: string;
   description?: string;
@@ -110,27 +58,137 @@ export async function createBoard(data: {
       }),
     ]);
 
-    // Adicionar um sprint padrão
-    const today = new Date();
-    const endDate = new Date();
-    endDate.setDate(today.getDate() + 14); // Sprint de duas semanas
-
-    await prisma.sprint.create({
-      data: {
-        name: "Sprint 1",
-        startDate: today,
-        endDate: endDate,
-        goal: "Implementar funcionalidades essenciais do MVP",
-        status: "active",
-        boardId: board.id,
-      },
-    });
-
     revalidatePath("/boards");
     return board;
   } catch (error) {
     console.error("Erro ao criar quadro:", error);
     throw new Error("Falha ao criar novo quadro");
+  }
+}
+
+export async function deleteBoard(boardId: string) {
+  try {
+    // Verificar se o quadro existe
+    const board = await prisma.board.findUnique({
+      where: { id: boardId },
+      include: {
+        columns: {
+          include: {
+            tasks: {
+              include: {
+                subtasks: true,
+              },
+            },
+          },
+        },
+        sprints: true,
+      },
+    });
+
+    if (!board) {
+      throw new Error("Quadro não encontrado");
+    }
+
+    // Usamos uma transação para garantir que tudo seja excluído ou nada seja excluído
+    await prisma.$transaction(async (tx) => {
+      // 1. Para cada coluna, excluir tarefas e subtarefas
+      for (const column of board.columns) {
+        for (const task of column.tasks) {
+          // Excluir subtarefas
+          await tx.subtask.deleteMany({
+            where: { taskId: task.id },
+          });
+
+          // Excluir comentários
+          await tx.comment.deleteMany({
+            where: { taskId: task.id },
+          });
+
+          // Excluir atividades
+          await tx.activity.deleteMany({
+            where: { taskId: task.id },
+          });
+        }
+
+        // Excluir todas as tarefas da coluna
+        await tx.task.deleteMany({
+          where: { columnId: column.id },
+        });
+      }
+
+      // 2. Excluir colunas
+      await tx.column.deleteMany({
+        where: { boardId },
+      });
+
+      // 3. Excluir sprints
+      await tx.sprint.deleteMany({
+        where: { boardId },
+      });
+
+      // 4. Finalmente excluir o quadro
+      await tx.board.delete({
+        where: { id: boardId },
+      });
+    });
+
+    revalidatePath("/boards");
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao excluir quadro:", error);
+    throw new Error("Falha ao excluir o quadro");
+  }
+}
+
+export async function getAllBoards() {
+  try {
+    const boards = await prisma.board.findMany({
+      include: {
+        team: {
+          select: {
+            name: true,
+          },
+        },
+        sprints: {
+          where: { status: "active" },
+          select: {
+            name: true,
+          },
+          take: 1,
+        },
+        columns: {
+          include: {
+            _count: {
+              select: { tasks: true },
+            },
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    });
+
+    // Transformar os dados para um formato mais amigável para o frontend
+    return boards.map((board) => {
+      const taskCount = board.columns.reduce(
+        (sum, column) => sum + column._count.tasks,
+        0
+      );
+
+      return {
+        id: board.id,
+        name: board.name,
+        description: board.description,
+        teamName: board.team.name,
+        activeSprint: board.sprints[0]?.name || "Sem sprint ativo",
+        taskCount,
+        updatedAt: board.updatedAt,
+      };
+    });
+  } catch (error) {
+    console.error("Erro ao buscar quadros:", error);
+    throw new Error("Falha ao buscar lista de quadros");
   }
 }
 

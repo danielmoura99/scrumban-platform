@@ -31,6 +31,9 @@ export default function DashboardLayout({
             <Link href="/sprints" className="text-gray-600 hover:text-gray-900">
               Sprints
             </Link>
+            <Link href="/users" className="text-gray-600 hover:text-gray-900">
+              Usuários
+            </Link>
             <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
               <span className="text-sm font-medium">US</span>
             </div>

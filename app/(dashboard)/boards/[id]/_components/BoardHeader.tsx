@@ -4,12 +4,13 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock } from "lucide-react";
+import { Clock, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { CreateTaskDialog } from "./CreateTaskDialog";
 import { createTask } from "../_actions/task-actions";
 import { useRouter } from "next/navigation";
 import { Column } from "./types";
+import DeleteBoardDialog from "../../_components/DeleteBoardDialog";
 
 type Sprint = {
   id: string;
@@ -20,6 +21,7 @@ type Sprint = {
 };
 
 type BoardHeaderProps = {
+  boardId: string;
   boardName: string;
   activeSprint: Sprint | null;
   columns: Column[];
@@ -28,8 +30,10 @@ type BoardHeaderProps = {
 export default function BoardHeader({
   boardName,
   activeSprint,
+  boardId,
 }: BoardHeaderProps) {
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const router = useRouter();
 
   // Função gerenciada pelo componente cliente
@@ -91,6 +95,14 @@ export default function BoardHeader({
             <Button size="sm" onClick={handleNewTask}>
               Nova Tarefa
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
         {activeSprint?.goal && (
@@ -106,6 +118,13 @@ export default function BoardHeader({
         open={createTaskOpen}
         onOpenChange={setCreateTaskOpen}
         onSubmit={handleCreateTask}
+      />
+
+      <DeleteBoardDialog
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        boardId={boardId}
+        boardName={boardName}
       />
     </>
   );

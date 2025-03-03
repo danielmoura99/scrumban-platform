@@ -1,3 +1,5 @@
+//app/(dashboard)/boards/[id]/_components/TaskDetailDialog.tsx
+
 "use client";
 
 import { useState, useEffect } from "react"; // Adicionei useEffect

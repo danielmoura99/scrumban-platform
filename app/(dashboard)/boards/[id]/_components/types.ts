@@ -1,3 +1,5 @@
+//app/(dashboard)/boards/[id]/_components/types.ts
+
 // Tipos compartilhados entre os componentes do quadro
 export type User = {
   id: string;
@@ -41,7 +43,6 @@ export type Task = {
   dueDate?: Date | null;
   estimate?: number | null;
   order: number;
-  // Conforme o schema prisma, tags é um array de strings
   tags: string[];
   assignee?: User | null;
   assigneeId?: string | null;

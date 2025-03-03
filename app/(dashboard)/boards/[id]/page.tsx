@@ -26,6 +26,7 @@ export default async function BoardPage({ params }: PageProps) {
     return (
       <div className="p-4 bg-gray-50 min-h-screen">
         <BoardHeader
+          boardId={id}
           boardName={board.name}
           activeSprint={activeSprint}
           columns={board.columns}
